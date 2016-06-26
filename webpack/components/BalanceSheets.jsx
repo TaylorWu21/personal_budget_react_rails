@@ -1,9 +1,12 @@
 import React from 'react';
+import BalanceSheet from './BalanceSheet';
+import { Link } from 'react-router'
 
 class BalanceSheets extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { balance_sheets: [] };
+		this.state = { balance_sheets: [], editView: false };
+		this.toggleEdit = this.toggleEdit.bind(this);
 	}
 
 	componentWillMount() {
@@ -12,6 +15,10 @@ class BalanceSheets extends React.Component {
 			type: 'GET',
 			dataType: 'JSON'
 		}).done( balance_sheets => {
+			balance_sheets = balance_sheets.map(function(balance_sheet) {
+				balance_sheet['editView'] = false;
+				return balance_sheet;
+			});
 			this.setState({ balance_sheets });
 		}).fail( data => {
 			console.log(data);
@@ -56,25 +63,46 @@ class BalanceSheets extends React.Component {
 
 	addForm() {
 		return(
-			<div>
-				<h3>New Balance</h3>
+			<div className='center'>
+				<h3>New Expense/Income</h3>
 				<form onSubmit={this.addBalance.bind(this)}>
 					<input type='text' placeholder='Enter Item' ref='item' required />
 					<input type='number' placeholder='Enter Amount' ref='amount' required />
-					<input type='submit' className='btn' />
+					<input type='submit' className='waves-effect waves-light btn green' />
 				</form>
 			</div>
 		)
 	}
 
+	toggleEdit() {
+		console.log('clicked');
+		this.setState({ editView: !this.state.editView });
+	}
+
+	handleEdit(e) {
+		e.preventDefault();
+		let item = this.refs.item.value;
+		let amount = this.refs.amount.value;
+		$.ajax({
+			url: `{/api/BalanceSheets/${this.state.balance_sheets.id}}`,
+			type: 'PUT',
+			data: { balanceSheet: { item, amount } },
+			dataType: 'JSON'
+		}).done( balance_sheet => {
+			this.setState({ balanceSheet, editView: false})
+		}).fail( data => {
+			console.log(data);
+		});
+	}
+
 	displayBalance() {
 		let balanceSheets = this.state.balance_sheets.map( balanceSheet => {
 			return(
-				<tr key={`balance_sheets-${balanceSheet.id}`}>
+				<tr key={`balanceSheets-${balanceSheet.id}`}>
 					<td>{balanceSheet.item}</td>
 					<td>{balanceSheet.amount}</td>
 					<td>
-						<button className='btn '>Edit</button>
+						<button onClick={this.toggleEdit} className='btn'>Edit</button>
 						<button className='btn red' onClick={() => this.deleteBalance(balanceSheet.id)}>Delete</button>
 					</td>
 				</tr>
@@ -82,7 +110,7 @@ class BalanceSheets extends React.Component {
 		});
 		return(
 			<div>
-				<table>
+				<table className='bordered striped centered responsive-table'>
 				<thead>
 					<tr>
 						<th>Items:</th>
@@ -99,16 +127,30 @@ class BalanceSheets extends React.Component {
 	}
 
 	render() {
-		return(
-			<div>
-				<div className='container'>
-					{this.addForm()}
-				</div>
+		if(this.state.editView) {
+			return(
 				<div>
-					{this.displayBalance()}
+					<h5>Edit Item</h5>
+						<form onSubmit={this.handleEdit.bind(this)}>
+							<input placeholder="Item" defaultValue={this.state.balance_sheets.item} ref='item' />
+							<input placeholder='Amount' defaultValue={this.state.balance_sheets.amount} ref='amount' />
+							<input type='submit' value='Update Balance' className='btn green' />
+							<button type='button' onClick={this.toggleEdit} className='btn orange'>Back</button>
+						</form>
 				</div>
-			</div>
-		)
+			)
+		} else {
+			return(
+				<div>
+					<div>
+						{this.addForm()}
+					</div>
+					<div>
+						{this.displayBalance()}
+					</div>
+				</div>
+			)
+		}
 	}
 }
 

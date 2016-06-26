@@ -9,6 +9,8 @@ export default (
   <Route>
     <Route path="/" component={App}>
     	<IndexRoute component={BalanceSheets} />
+    	<Route path="/BalanceSheets" component={BalanceSheets} />
+    	<Route path="/BalanceSheets/:id" component={BalanceSheet} />
   	</Route>
     <Route path="*" status={404} component={NoMatch} />
   </Route>
