@@ -3,8 +3,6 @@ import React from 'react';
 class BalanceSheet extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { balanceSheet: null, editView: true};
-		this.toggleEdit = this.toggleEdit.bind(this);
 	}
 
 	componentWIllMount() {
@@ -19,43 +17,42 @@ class BalanceSheet extends React.Component {
 		});
 	}
 
-	toggleEdit() {
-		this.setState({ editView: !this.state.editView });
+	handleEditView() {
+		this.props.onEditView(this.props);
 	}
 
-	handleEdit(e) {
+	handleUpdate(e) {
 		e.preventDefault();
-		let item = this.refs.item.value;
-		let amount = this.refs.amount.value;
-		$.ajax({
-			url: `{/api/BalanceSheets/${this.state.balance_sheet.id}}`,
-			type: 'PUT',
-			data: { balanceSheet: { item, amount } },
-			dataType: 'JSON'
-		}).done( balance_sheet => {
-			this.setState({ balanceSheet, editView: false})
-		}).fail( data => {
-			console.log(data);
-		});
+		this.props.onUpdate(this.props, this.refs.item.value, this.refs.amount.value);
+	}
+
+	handleDelete() {
+		this.props.onDelete(this.props);
 	}
 
 	render() {
-		if(this.state.editView) {
+		if(this.props.editView) {
 			return(
-				<div>
-					<h5>Edit Item</h5>
-						<form>
-							<input placeholder="Item" defaultValue={this.state.props.balance_sheets.item} ref='item' />
-							{/*<input placeholder='Amount' defaultValue={this.state.props.balanceSheet.amount} ref='amount' />*/}
-							<input />
-						</form>
-				</div>
-			)
-		} else {
-			return(
-				<p>hi</p>
+				<tr>
+					<form onSubmit={this.handleUpdate.bind(this)}>
+						<input type='text' placeholder='Item' defaultValue={this.props.item} ref='item' required />
+						<input type='number' placeholder='Amount' defaultValue={this.props.amount} ref='amount' required />
+						<input type='submit' className='waves-effect waves-light btn green' value='Update' />
+						<button onClick={this.toggleEdit} className='btn orange'>Back</button>
+					</form>
+				</tr>
 			)
 		}
+		return(
+			<tr className="balance-sheet">
+				<td>{this.props.item}</td>
+				<td>{this.props.amount}</td>
+				<td>
+					<button className='btn' onClick={this.handleEditView.bind(this)}>Edit</button>
+					<button className='btn red' onClick={this.handleDelete.bind(this)}>Delete</button>
+				</td>
+			</tr>
+		)
 	}
 }
 

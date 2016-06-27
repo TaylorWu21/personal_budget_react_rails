@@ -11,7 +11,11 @@ class Api::BalanceSheetsController < ApplicationController
 	end
 
 	def update
-		
+		if @balance.update(balance_sheet_params)
+			render json: @balance.reload
+		else
+			render json: {errors: @balance.errors.full_messages}
+		end
 	end
 
 	def create

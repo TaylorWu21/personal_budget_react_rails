@@ -5,8 +5,10 @@ import { Link } from 'react-router'
 class BalanceSheets extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { balance_sheets: [], editView: false };
+		this.state = { balance_sheets: [] };
+		this.deleteBalance = this.deleteBalance.bind(this);
 		this.toggleEdit = this.toggleEdit.bind(this);
+		this.handleEdit = this.handleEdit.bind(this);
 	}
 
 	componentWillMount() {
@@ -25,15 +27,16 @@ class BalanceSheets extends React.Component {
 		});
 	}
 
-	deleteBalance(id) {
+	deleteBalance(balanceSheet) {
+		let that = this;
 		$.ajax({
-			url: `/api/balance_sheets/${id}`,
+			url: `/api/balance_sheets/${balanceSheet.id}`,
 			type: 'DELETE',
 			dataType: 'JSON'
 		}).done( data => {
-			let balanceSheets = this.state.balance_sheets;
-			let index = balanceSheets.findIndex( b => b.id === id);
-			this.setState({
+			let balanceSheets = that.state.balance_sheets;
+			let index = balanceSheets.findIndex( b => b.id === balanceSheet.id);
+			that.setState({
 				balance_sheets: [
 					...balanceSheets.slice(0, index),
 					...balanceSheets.slice(index + 1, balanceSheets.length)
@@ -55,7 +58,6 @@ class BalanceSheets extends React.Component {
 			this.setState({ balance_sheets: [{...balance_sheet}, ...this.state.balance_sheets] })
 			this.refs.item.value = null;
 			this.refs.amount.value = null;
-			console.log(this.state.balance_sheets)
 		}).fail( data => {
 			console.log(data)
 		});
@@ -74,22 +76,32 @@ class BalanceSheets extends React.Component {
 		)
 	}
 
-	toggleEdit() {
-		console.log('clicked');
-		this.setState({ editView: !this.state.editView });
+	toggleEdit(balanceSheet) {
+		this.state.balance_sheets = this.state.balance_sheets.map(balance => {
+			if(balanceSheet.id === balance.id) {
+				balance.editView = !balance.editView;
+			}
+			return balance;
+		});
+		this.setState(this.state.balance_sheets);
 	}
 
-	handleEdit(e) {
-		e.preventDefault();
-		let item = this.refs.item.value;
-		let amount = this.refs.amount.value;
+	handleEdit(balanceSheet, item, amount) {
 		$.ajax({
-			url: `{/api/BalanceSheets/${this.state.balance_sheets.id}}`,
+			url: `/api/balance_sheets/${balanceSheet.id}`,
 			type: 'PUT',
-			data: { balanceSheet: { item, amount } },
+			data: { balance_sheet: {item, amount} },
 			dataType: 'JSON'
 		}).done( balance_sheet => {
-			this.setState({ balanceSheet, editView: false})
+				let balance_sheets = this.state.balance_sheets.map(balance => {
+				if(balanceSheet.id === balance.id) {
+					balance.editView = !balance.editView;
+					balance.item = balance_sheet.item;
+					balance.amount = balance_sheet.amount;
+				}
+				return balance;
+			});
+			this.setState({ balance_sheets });
 		}).fail( data => {
 			console.log(data);
 		});
@@ -98,14 +110,7 @@ class BalanceSheets extends React.Component {
 	displayBalance() {
 		let balanceSheets = this.state.balance_sheets.map( balanceSheet => {
 			return(
-				<tr key={`balanceSheets-${balanceSheet.id}`}>
-					<td>{balanceSheet.item}</td>
-					<td>{balanceSheet.amount}</td>
-					<td>
-						<button onClick={this.toggleEdit} className='btn'>Edit</button>
-						<button className='btn red' onClick={() => this.deleteBalance(balanceSheet.id)}>Delete</button>
-					</td>
-				</tr>
+				<BalanceSheet key={`balance-sheet-${balanceSheet.id}`} {...balanceSheet } onDelete={this.deleteBalance} onEditView={this.toggleEdit} onUpdate={this.handleEdit}/>
 			);
 		});
 		return(
@@ -127,30 +132,16 @@ class BalanceSheets extends React.Component {
 	}
 
 	render() {
-		if(this.state.editView) {
-			return(
+		return(
+			<div>
 				<div>
-					<h5>Edit Item</h5>
-						<form onSubmit={this.handleEdit.bind(this)}>
-							<input placeholder="Item" defaultValue={this.state.balance_sheets.item} ref='item' />
-							<input placeholder='Amount' defaultValue={this.state.balance_sheets.amount} ref='amount' />
-							<input type='submit' value='Update Balance' className='btn green' />
-							<button type='button' onClick={this.toggleEdit} className='btn orange'>Back</button>
-						</form>
+					{this.addForm()}
 				</div>
-			)
-		} else {
-			return(
 				<div>
-					<div>
-						{this.addForm()}
-					</div>
-					<div>
-						{this.displayBalance()}
-					</div>
+					{this.displayBalance()}
 				</div>
-			)
-		}
+			</div>
+		)
 	}
 }
 
